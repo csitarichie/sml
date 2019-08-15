@@ -121,9 +121,13 @@ set(CXX_STANDARD_REQUIRED ON)
 # Turn on the .vcproj folder support
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-find_package(Boost REQUIRED)
+find_package(Boost)
 
 add_library(sml INTERFACE)
+
+if(NOT Boost_FOUND)
+    return()
+endif()
 
 target_include_directories(sml
     INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
