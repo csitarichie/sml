@@ -191,7 +191,7 @@ endif ()
 
 target_include_directories(sml
     INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-              $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/boostSml>)
+              $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${SML_DESTINATION_NAME}>)
 
 include_directories($<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
