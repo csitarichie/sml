@@ -59,7 +59,8 @@
 
 ###########################################################################################
 cmake_minimum_required(VERSION 3.10)
-project(sml LANGUAGES CXX)
+project(sml LANGUAGES CXX
+        VERSION 1.1.0.1)
 include(CTest)
 
 option(SML_BUILD_BENCHMARKS "Build benchmarks" ON)
@@ -108,12 +109,28 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
 endif()
 
 include(GNUInstallDirs)
-install(DIRECTORY "include/boost" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+include(CMakePackageConfigHelpers)
 
-#if(NOT (BUILD_BENCHMARKS OR BUILD_DOCS OR BUILD_EXAMPLES OR BUILD_TESTS))
-#    message(STATUS "No targets will be built")
-#    return()
-#endif()
+install(DIRECTORY "include/boost" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/boostSml")
+
+install(EXPORT BoostSml NAMESPACE Boost
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/BoostSml)
+
+set(INCLUDE_INSTALL_DIR include/)
+
+configure_package_config_file(BoostSmlConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/BoostSmlConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/boostSml/cmake
+    PATH_VARS INCLUDE_INSTALL_DIR)
+
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/BoostSmlConfigVersion.cmake
+    VERSION ${CMAKE_PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/BoostSmlConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/BoostSmlConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/boostSml/cmake)
 
 set(CXX_STANDARD_REQUIRED ON)
 #message(STATUS "CMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}")
@@ -121,43 +138,33 @@ set(CXX_STANDARD_REQUIRED ON)
 # Turn on the .vcproj folder support
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-find_package(Boost)
-
 add_library(sml INTERFACE)
 
-if(NOT Boost_FOUND)
-    return()
-endif()
-
-target_include_directories(sml
-    INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-
-target_link_libraries(sml
-    INTERFACE Boost::boost)
+install(TARGETS sml EXPORT BoostSml)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_compile_definitions(sml
-      INTERFACE NOMINMAX # avoid Win macro definition of min/max, use std one
-      INTERFACE _SCL_SECURE_NO_WARNINGS # disable security-paranoia warning
-      INTERFACE _CRT_SECURE_NO_WARNINGS)
+        INTERFACE NOMINMAX # avoid Win macro definition of min/max, use std one
+        INTERFACE _SCL_SECURE_NO_WARNINGS # disable security-paranoia warning
+        INTERFACE _CRT_SECURE_NO_WARNINGS)
     #target_compile_options(sml
     #  INTERFACE "/W3" # waring level
     #  INTERFACE "/WX") # warning as error
     if(CMAKE_CXX_STANDARD GREATER_EQUAL 17)
-      # benchmark\complex\sc.cpp(18): warning C4996: 'std::allocator<void>': warning STL4009: std::allocator<void> is deprecated in C++1
-      target_compile_definitions(sml
-        INTERFACE _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
+        # benchmark\complex\sc.cpp(18): warning C4996: 'std::allocator<void>': warning STL4009: std::allocator<void> is deprecated in C++1
+        target_compile_definitions(sml
+            INTERFACE _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
     endif()
 elseif (IS_COMPILER_GCC_LIKE) # gcc
     # https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
     target_compile_options(sml
-      INTERFACE "-Wfatal-errors" # stops on first error
-      INTERFACE "-Wall" # enables all the warnings about constructions
-      INTERFACE "-Wextra" # Print extra warning messages"
-      INTERFACE "-Werror" # Make all warnings into errors.
-      INTERFACE "-pedantic" # Issue all the warnings demanded by strict ISO C and ISO C++
-      INTERFACE "-pedantic-errors" # Like -pedantic, except that errors are produced rather than warnings
-      )
+        INTERFACE "-Wfatal-errors" # stops on first error
+        INTERFACE "-Wall" # enables all the warnings about constructions
+        INTERFACE "-Wextra" # Print extra warning messages"
+        INTERFACE "-Werror" # Make all warnings into errors.
+        INTERFACE "-pedantic" # Issue all the warnings demanded by strict ISO C and ISO C++
+        INTERFACE "-pedantic-errors" # Like -pedantic, except that errors are produced rather than warnings
+        )
 
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
         target_compile_options(sml
@@ -168,13 +175,29 @@ elseif (IS_COMPILER_GCC_LIKE) # gcc
     endif()
 
     if (NOT ${SML_USE_EXCEPTIONS})
-      target_compile_options(sml
-        INTERFACE "-fno-exceptions" # compiles without exception support
-        )
+        target_compile_options(sml
+            INTERFACE "-fno-exceptions" # compiles without exception support
+            )
     endif()
 endif ()
 
+target_include_directories(sml
+    INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+              $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/boostSml>)
+
 include_directories($<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+
+# install still works even boost is not installed on the system
+# since it is a header only library
+# only this case the poject build targets are not exists.
+find_package(Boost)
+
+if(NOT Boost_FOUND)
+    return()
+endif()
+
+target_link_libraries(sml
+    INTERFACE Boost::boost)
 
 function(add_example exe_name bm_name src_name)
   add_executable(${exe_name} ${src_name})
