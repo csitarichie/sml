@@ -181,13 +181,12 @@ elseif (IS_COMPILER_GCC_LIKE) # gcc
         INTERFACE "-pedantic-errors" # Like -pedantic, except that errors are produced rather than warnings
         )
 
-    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-        target_compile_options(sml
-            # http://stackoverflow.com/questions/30255294/how-to-hide-extra-output-from-pragma-message
-            INTERFACE "-ftrack-macro-expansion=0"
-            INTERFACE "-fno-diagnostics-show-caret"
-            )
-    endif()
+    target_compile_options(sml
+        # http://stackoverflow.com/questions/30255294/how-to-hide-extra-output-from-pragma-message
+        INTERFACE "$<$<CXX_COMPILER_ID:GNU>:-ftrack-macro-expansion=0>"
+        INTERFACE "$<$<CXX_COMPILER_ID:GNU>:-fno-diagnostics-show-caret>"
+        )
+
 
     if (NOT ${SML_USE_EXCEPTIONS})
         target_compile_options(sml
